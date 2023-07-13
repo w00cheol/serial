@@ -38,6 +38,59 @@ func NewDLPTH1C(portName string) *DLPTH1C {
 	return &DLPTH1C{portName: portName, vcp: port}
 }
 
+func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
+	allData := new(AllData)
+	for {
+		// request all value in ascii code
+		// ([]byte{'t','h','p','a','x','v','w','l','f','b',})
+		d.vcp.Write(
+			[]byte{
+				TemperatureASCIICmd,
+				HumidityASCIICmd,
+				PressureASCIICmd,
+				TiltASCIICmd,
+				VibrationXASCIICmd,
+				VibrationYASCIICmd,
+				VibrationZASCIICmd,
+				LightASCIICmd,
+				SoundASCIICmd,
+				BroadbandASCIICmd,
+			})
+
+		// need to wait response for 30 seconds because of data loss issue
+		t := time.Now()
+		time.Sleep(30 * time.Second)
+
+		// read from response
+		b := make([]byte, 2048)
+		if _, err := d.vcp.Read(b); err != nil {
+			return err
+		}
+
+		// string parsing (temperature)
+		sep := strings.Split(string(b), "= ")
+		if len(sep) < 3 {
+			DataMissingError()
+		}
+		temperatureStr := strings.Split(sep[1], "\xb0C")[0]
+		temperature, err := strconv.ParseFloat(temperatureStr, 64)
+		if err != nil {
+			DataMissingError()
+		}
+		allData.Temperature = temperature
+
+		// string parsing (humidity)
+		humidityStr := strings.Split(sep[2], "%")[0]
+		humidity, err := strconv.ParseFloat(humidityStr, 64)
+		if err != nil {
+			return err
+		}
+		allData.Humidity = humidity
+
+		out <- &(TimeSeriesData{Time: t, Data: allData})
+	}
+}
+
 func (d *DLPTH1C) readTemperatureAsync(out chan<- *TimeSeriesData) error {
 	for {
 		// request temperature value in ascii code
@@ -52,17 +105,9 @@ func (d *DLPTH1C) readTemperatureAsync(out chan<- *TimeSeriesData) error {
 		}
 
 		// string parsing
-		sep := strings.Split(string(b), "= ")
-		if len(sep) < 2 {
-			continue
-		}
-		temperatureStr := strings.Split(sep[1], "\xb0C")[0]
-		if len(temperatureStr) > 5 {
-			continue
-		}
-		temperature, err := strconv.ParseFloat(temperatureStr, 64)
+		temperature, err := parseTemperature(b)
 		if err != nil {
-			continue
+			return err
 		}
 
 		out <- &(TimeSeriesData{Time: t, Data: temperature})
@@ -76,21 +121,13 @@ func (d *DLPTH1C) readHumidityAsync(out chan<- *TimeSeriesData) error {
 		t := time.Now()
 		time.Sleep(2 * time.Second)
 
-		b := make([]byte, 128)
+		b := make([]byte, 2048)
 		if _, err := d.vcp.Read(b); err != nil {
 			return err
 		}
 
 		// string parsing
-		sep := strings.Split(string(b), " = ")
-		if len(sep) < 2 {
-			return DataMissingError()
-		}
-		humidityStr := strings.Split(sep[1], "%")[0]
-		if len(humidityStr) > 5 {
-			return DataMissingError()
-		}
-		humidity, err := strconv.ParseFloat(humidityStr, 64)
+		humidity, err := parseHumidity(b)
 		if err != nil {
 			return err
 		}
@@ -112,12 +149,7 @@ func (d *DLPTH1C) readPressureAsync(out chan<- *TimeSeriesData) error {
 		}
 
 		// string parsing
-		sep := strings.Split(string(b), "= ")
-		if len(sep) < 2 {
-			return DataMissingError()
-		}
-		pressureStr := strings.TrimSpace(strings.Split(strings.Split(sep[1], "\r")[0], "\x00")[0])
-		pressure, err := strconv.ParseFloat(pressureStr, 64)
+		pressure, err := parsePressure(b)
 		if err != nil {
 			return err
 		}
@@ -128,9 +160,6 @@ func (d *DLPTH1C) readPressureAsync(out chan<- *TimeSeriesData) error {
 
 func (d *DLPTH1C) readTiltAsync(out chan<- *TimeSeriesData) error {
 	for {
-		// make new tilt for return
-		tilt := new(TiltData)
-
 		// request tilt value in ascii code
 		d.vcp.Write([]byte{TiltASCIICmd})
 		t := time.Now()
@@ -142,32 +171,10 @@ func (d *DLPTH1C) readTiltAsync(out chan<- *TimeSeriesData) error {
 		}
 
 		// string parsing
-		sep := strings.Split(string(b), ":")
-		if len(sep) < 4 {
-			return DataMissingError()
-		}
-
-		xAxisStr := strings.TrimSpace(strings.Split(strings.Split(sep[1], " ")[0], "\r")[0])
-		yAxisStr := strings.TrimSpace(strings.Split(strings.Split(sep[2], " ")[0], "\r")[0])
-		zAxisStr := strings.TrimSpace(strings.Split(strings.Split(sep[3], " ")[0], "\r")[0])
-
-		xAxis, err := strconv.ParseInt(xAxisStr, 10, 64)
+		tilt, err := parseTilt(b)
 		if err != nil {
 			return err
 		}
-		yAxis, err := strconv.ParseInt(yAxisStr, 10, 64)
-		if err != nil {
-			return err
-		}
-		zAxis, err := strconv.ParseInt(zAxisStr, 10, 64)
-		if err != nil {
-			return err
-		}
-
-		// assign into struct's member value
-		tilt.XAxis = xAxis
-		tilt.YAxis = yAxis
-		tilt.ZAxis = zAxis
 
 		out <- &(TimeSeriesData{Time: t, Data: tilt})
 	}
@@ -193,42 +200,13 @@ func (d *DLPTH1C) readVibrationAsync(cmd byte, out chan<- *TimeSeriesData) error
 		}
 
 		// string parsing
-		lines := strings.Split(string(b), "\n")
-		if len(lines) < 8 {
-			return DataMissingError()
+		vibration, err := parseVibration(b)
+		if err != nil {
+			return err
 		}
 
-		vibration := new(VibrationData)
-
-		// ignore two lines('\n') at first and the last from after line 8.
-		// (DLP-TH1C returns meaningless byte '\n' within a response of vibration request)
-		for i, line := range lines[2:8] {
-			// string parsing
-			sep := strings.Split(line, ":")
-			if len(sep) != 3 {
-				return DataMissingError()
-			}
-
-			peakStr := strings.Split(sep[1], "Hz")[0]
-			peakStr = strings.TrimLeft(peakStr, " ")
-			peak, err := strconv.ParseInt(peakStr, 10, 64)
-			if err != nil {
-				return err
-			}
-
-			ampStr := strings.Split(strings.Split(sep[2], "\r")[0], "\x00")[0]
-			amp, err := strconv.ParseFloat(ampStr, 64)
-			if err != nil {
-				return err
-			}
-
-			// set value into response struct
-			vibration.Peak[i] = peak
-			vibration.Amp[i] = amp
-
-			// it goes out to the channel
-			out <- &(TimeSeriesData{Time: t, Data: vibration})
-		}
+		// it goes out to the channel
+		out <- &(TimeSeriesData{Time: t, Data: vibration})
 	}
 }
 
@@ -245,20 +223,10 @@ func (d *DLPTH1C) readLightAsync(out chan<- *TimeSeriesData) error {
 		}
 
 		// string parsing
-		sep := strings.Split(string(b), ": ")
-		if len(sep) < 2 {
-			return DataMissingError()
-		}
-
-		lightStr := strings.Split(strings.Split(strings.Split(sep[1], "\r")[0], "\n")[0], "\x00")[0]
-
-		light64, err := strconv.ParseInt(lightStr, 10, 8)
+		light, err := parseLight(b)
 		if err != nil {
 			return err
 		}
-
-		// light value consists of 8 bits (according to dlpdesing.com that made DLP-TH1C)
-		light := int8(light64)
 
 		out <- &(TimeSeriesData{Time: t, Data: light})
 	}
@@ -277,41 +245,13 @@ func (d *DLPTH1C) readSoundAsync(out chan<- *TimeSeriesData) error {
 		}
 
 		// string parsing
-		lines := strings.Split(string(b), "\n")
-		if len(lines) < 9 {
-			return DataMissingError()
+		sound, err := parseSound(b)
+		if err != nil {
+			return err
 		}
 
-		sound := new(SoundData)
-
-		// ignore two lines at first and the last after line 8.
-		// (DLP-TH1C returns meaningless byte "\n" within a result of sound value)
-		for i, line := range lines[2:8] {
-			sep := strings.Split(line, ":")
-			if len(sep) != 3 {
-				return DataMissingError()
-			}
-
-			peakStr := strings.Split(sep[1], "Hz")[0]
-			peakStr = strings.TrimLeft(peakStr, " ")
-			peak, err := strconv.ParseInt(peakStr, 10, 64)
-			if err != nil {
-				return err
-			}
-
-			ampStr := strings.Split(strings.Split(sep[2], "\r")[0], "\x00")[0]
-			amp, err := strconv.ParseFloat(ampStr, 64)
-			if err != nil {
-				return err
-			}
-
-			// set value into the response struct
-			sound.Peak[i] = peak
-			sound.Amp[i] = amp
-
-			// it goes out to the channel
-			out <- &(TimeSeriesData{Time: t, Data: sound})
-		}
+		// it goes out to the channel
+		out <- &TimeSeriesData{Time: t, Data: sound}
 	}
 }
 
@@ -328,14 +268,7 @@ func (d *DLPTH1C) readBroadbandAsync(out chan<- *TimeSeriesData) error {
 		}
 
 		// string parsing
-		sep := strings.Split(string(b), ": ")
-		if len(sep) < 2 {
-			return DataMissingError()
-		}
-
-		broadbandStr := strings.Split(strings.Split(strings.Split(sep[1], "\r")[0], "\n")[0], "\x00")[0]
-
-		broadband, err := strconv.ParseFloat(broadbandStr, 64)
+		broadband, err := parseBroadband(b)
 		if err != nil {
 			return err
 		}
