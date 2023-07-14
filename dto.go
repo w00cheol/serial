@@ -29,11 +29,11 @@ type AllData struct {
 	Temperature float64
 	Humidity    float64
 	Pressure    float64
-	Tilt        TiltData
-	VibrationX  VibrationData
-	VibrationY  VibrationData
-	VibrationZ  VibrationData
+	Tilt        *TiltData
+	VibrationX  *VibrationData
+	VibrationY  *VibrationData
+	VibrationZ  *VibrationData
 	Light       int8
-	Sound       SoundData
+	Sound       *SoundData
 	Broadband   float64
 }
