@@ -99,7 +99,11 @@ func main() {
 			}
 
 		} else {
-			// Select  function by the command that had been selected by user.
+			// Select function by the command that had been selected by user.
+			// It needs to be updated to use onther parsing function depending on each option.
+			// But imagine how the custom option could be,
+			// The value of the sensor responds is too variable to expect every kind of format, exception, data loss as well.
+			// So it is decided to call readAllAsync(chan) function and just extract only the kind of data that user wants.
 			option = true
 			go d.readAllAsync(in)
 		}

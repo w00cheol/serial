@@ -40,20 +40,6 @@ type SoundData struct {
 	Amp  [6]float64
 }
 
-// 바꾼 이유 설명
-// type AllData struct {
-// 	Temperature TemperatureData
-// 	Humidity    HumidityData
-// 	Pressure    PressureData
-// 	Tilt        *TiltData
-// 	VibrationX  *VibrationData
-// 	VibrationY  *VibrationData
-// 	VibrationZ  *VibrationData
-// 	Light       LightData
-// 	Sound       *SoundData
-// 	Broadband   BroadbandData
-// }
-
 func (temperatureData TemperatureData) print() {
 	fmt.Printf("Temperature: %+v(℃)\n", temperatureData)
 }
@@ -105,6 +91,20 @@ func (soundData *SoundData) print() {
 func (broadbanddata BroadbandData) print() {
 	fmt.Printf("Broadband: %+v\n", broadbanddata)
 }
+
+// do not use anymore since https://github.com/w00cheol/serial/commit/15d0f2690c37e121818a7f6ab7a93cb38d895186
+// type AllData struct {
+// 	Temperature TemperatureData
+// 	Humidity    HumidityData
+// 	Pressure    PressureData
+// 	Tilt        *TiltData
+// 	VibrationX  *VibrationData
+// 	VibrationY  *VibrationData
+// 	VibrationZ  *VibrationData
+// 	Light       LightData
+// 	Sound       *SoundData
+// 	Broadband   BroadbandData
+// }
 
 // func (allData *AllData) print() {
 // 	allData.Temperature.print()
