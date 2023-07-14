@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-func parseTemperature(b []byte) (temperature float64, err error) {
-	sep := strings.Split(string(b), "= ")
+func parseTemperature(b string) (temperature float64, err error) {
+	sep := strings.Split(b, "= ")
 
 	temperatureStr := strings.Split(sep[1], "\xb0C")[0]
 	temperature, err = strconv.ParseFloat(temperatureStr, 64)
@@ -17,8 +17,8 @@ func parseTemperature(b []byte) (temperature float64, err error) {
 	return temperature, nil
 }
 
-func parseHumidity(b []byte) (humidity float64, err error) {
-	sep := strings.Split(string(b), " = ")
+func parseHumidity(b string) (humidity float64, err error) {
+	sep := strings.Split(b, " = ")
 	if len(sep) < 2 {
 		return -1, DataMissingError()
 	}
@@ -32,8 +32,8 @@ func parseHumidity(b []byte) (humidity float64, err error) {
 	return humidity, nil
 }
 
-func parsePressure(b []byte) (pressure float64, err error) {
-	sep := strings.Split(string(b), "= ")
+func parsePressure(b string) (pressure float64, err error) {
+	sep := strings.Split(b, "= ")
 	if len(sep) < 2 {
 		return -1, DataMissingError()
 	}
@@ -47,11 +47,11 @@ func parsePressure(b []byte) (pressure float64, err error) {
 	return pressure, nil
 }
 
-func parseTilt(b []byte) (tilt *TiltData, err error) {
+func parseTilt(b string) (tilt *TiltData, err error) {
 	// make new tilt for return
 	tilt = new(TiltData)
 
-	sep := strings.Split(string(b), ":")
+	sep := strings.Split(b, ":")
 	if len(sep) < 4 {
 		return nil, DataMissingError()
 	}
@@ -81,9 +81,9 @@ func parseTilt(b []byte) (tilt *TiltData, err error) {
 	return tilt, nil
 }
 
-func parseVibration(b []byte) (vibration *VibrationData, err error) {
+func parseVibration(b string) (vibration *VibrationData, err error) {
 	// string parsing
-	lines := strings.Split(string(b), "\n")
+	lines := strings.Split(b, "\n")
 	if len(lines) < 7 {
 		return nil, DataMissingError()
 	}
@@ -128,8 +128,8 @@ func parseVibration(b []byte) (vibration *VibrationData, err error) {
 	return nil, DataMissingError()
 }
 
-func parseLight(b []byte) (light int8, err error) {
-	sep := strings.Split(string(b), ": ")
+func parseLight(b string) (light int8, err error) {
+	sep := strings.Split(b, ": ")
 	if len(sep) < 2 {
 		return -1, DataMissingError()
 	}
@@ -145,10 +145,10 @@ func parseLight(b []byte) (light int8, err error) {
 	return light, nil
 }
 
-func parseSound(b []byte) (sound *SoundData, err error) {
+func parseSound(b string) (sound *SoundData, err error) {
 	sound = new(SoundData)
 
-	lines := strings.Split(string(b), "\n")
+	lines := strings.Split(b, "\n")
 	if len(lines) < 7 {
 		return nil, DataMissingError()
 	}
@@ -189,8 +189,8 @@ func parseSound(b []byte) (sound *SoundData, err error) {
 	return nil, DataMissingError()
 }
 
-func parseBroadband(b []byte) (broadband float64, err error) {
-	sep := strings.Split(string(b), ": ")
+func parseBroadband(b string) (broadband float64, err error) {
+	sep := strings.Split(b, ": ")
 	if len(sep) < 2 {
 		return -1, DataMissingError()
 	}

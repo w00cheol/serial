@@ -5,10 +5,11 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
-	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jacobsa/go-serial/serial"
@@ -39,8 +40,12 @@ func NewDLPTH1C(portName string) *DLPTH1C {
 }
 
 func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
-	allData := new(AllData)
+	var wg sync.WaitGroup
+
 	for {
+		allData := new(AllData)
+		fmt.Println("wait 30 seconds...")
+
 		// request all value in ascii code
 		// ([]byte{'t','h','p','a','x','v','w','l','f','b',})
 		d.vcp.Write(
@@ -62,31 +67,132 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 		time.Sleep(30 * time.Second)
 
 		// read from response
-		b := make([]byte, 2048)
+		b := make([]byte, 1024)
 		if _, err := d.vcp.Read(b); err != nil {
 			return err
 		}
 
+		sep := strings.Split(string(b), "\n")
+		if len(sep) < 35 {
+			return DataMissingError()
+		}
+
+		// discard few lines at first for parsing
+		i := 0
+		for sep[i] == "" {
+			i++
+		}
+
 		// string parsing (temperature)
-		sep := strings.Split(string(b), "= ")
-		if len(sep) < 3 {
-			DataMissingError()
-		}
-		temperatureStr := strings.Split(sep[1], "\xb0C")[0]
-		temperature, err := strconv.ParseFloat(temperatureStr, 64)
-		if err != nil {
-			DataMissingError()
-		}
-		allData.Temperature = temperature
+		wg.Add(10)
+
+		go func() {
+			defer wg.Done()
+			temperature, err := parseTemperature(sep[i])
+			if err != nil {
+				DataMissingError()
+			}
+			allData.Temperature = temperature
+		}()
 
 		// string parsing (humidity)
-		humidityStr := strings.Split(sep[2], "%")[0]
-		humidity, err := strconv.ParseFloat(humidityStr, 64)
-		if err != nil {
-			return err
-		}
-		allData.Humidity = humidity
+		go func() {
+			defer wg.Done()
 
+			humidity, err := parseHumidity(sep[i+1])
+			if err != nil {
+				DataMissingError()
+			}
+			allData.Humidity = humidity
+		}()
+
+		// string parsing (pressure)
+		go func() {
+			defer wg.Done()
+
+			pressure, err := parsePressure(sep[i+2])
+			if err != nil {
+				DataMissingError()
+			}
+			allData.Pressure = pressure
+		}()
+
+		// string parsing (tilt)
+		go func() {
+			defer wg.Done()
+
+			tilt, err := parseTilt(sep[i+3])
+			if err != nil {
+				DataMissingError()
+			}
+			allData.Tilt = tilt
+		}()
+
+		// string parsing (vibration X, Y, Z in order)
+		go func() {
+			defer wg.Done()
+
+			vibrationX, err := parseVibration(strings.Join(sep[i+4:i+11], "\n"))
+			if err != nil {
+				DataMissingError()
+			}
+			allData.VibrationX = vibrationX
+		}()
+
+		go func() {
+			defer wg.Done()
+
+			vibrationY, err := parseVibration(strings.Join(sep[i+11:i+18], "\n"))
+			if err != nil {
+				DataMissingError()
+			}
+			allData.VibrationY = vibrationY
+		}()
+
+		go func() {
+			defer wg.Done()
+
+			vibrationZ, err := parseVibration(strings.Join(sep[i+18:i+25], "\n"))
+			if err != nil {
+				DataMissingError()
+			}
+			allData.VibrationZ = vibrationZ
+		}()
+
+		// string parsing (light)
+		go func() {
+			defer wg.Done()
+
+			light, err := parseLight(sep[i+25])
+			if err != nil {
+				DataMissingError()
+			}
+			allData.Light = light
+		}()
+
+		// string parsing (sound)
+		go func() {
+			defer wg.Done()
+
+			sound, err := parseSound(strings.Join(sep[i+26:i+33], "\n"))
+			if err != nil {
+				DataMissingError()
+			}
+			allData.Sound = sound
+		}()
+
+		// string parsing (broadband)
+		go func() {
+			defer wg.Done()
+
+			broadband, err := parseBroadband(sep[i+33])
+			if err != nil {
+				DataMissingError()
+			}
+			allData.Broadband = broadband
+		}()
+
+		wg.Wait()
 		out <- &(TimeSeriesData{Time: t, Data: allData})
 	}
 }
@@ -105,7 +211,7 @@ func (d *DLPTH1C) readTemperatureAsync(out chan<- *TimeSeriesData) error {
 		}
 
 		// string parsing
-		temperature, err := parseTemperature(b)
+		temperature, err := parseTemperature(string(b))
 		if err != nil {
 			return err
 		}
@@ -127,7 +233,7 @@ func (d *DLPTH1C) readHumidityAsync(out chan<- *TimeSeriesData) error {
 		}
 
 		// string parsing
-		humidity, err := parseHumidity(b)
+		humidity, err := parseHumidity(string(b))
 		if err != nil {
 			return err
 		}
@@ -149,7 +255,7 @@ func (d *DLPTH1C) readPressureAsync(out chan<- *TimeSeriesData) error {
 		}
 
 		// string parsing
-		pressure, err := parsePressure(b)
+		pressure, err := parsePressure(string(b))
 		if err != nil {
 			return err
 		}
@@ -171,7 +277,7 @@ func (d *DLPTH1C) readTiltAsync(out chan<- *TimeSeriesData) error {
 		}
 
 		// string parsing
-		tilt, err := parseTilt(b)
+		tilt, err := parseTilt(string(b))
 		if err != nil {
 			return err
 		}
@@ -200,7 +306,7 @@ func (d *DLPTH1C) readVibrationAsync(cmd byte, out chan<- *TimeSeriesData) error
 		}
 
 		// string parsing
-		vibration, err := parseVibration(b)
+		vibration, err := parseVibration(string(b))
 		if err != nil {
 			return err
 		}
@@ -223,7 +329,7 @@ func (d *DLPTH1C) readLightAsync(out chan<- *TimeSeriesData) error {
 		}
 
 		// string parsing
-		light, err := parseLight(b)
+		light, err := parseLight(string(b))
 		if err != nil {
 			return err
 		}
@@ -245,7 +351,7 @@ func (d *DLPTH1C) readSoundAsync(out chan<- *TimeSeriesData) error {
 		}
 
 		// string parsing
-		sound, err := parseSound(b)
+		sound, err := parseSound(string(b))
 		if err != nil {
 			return err
 		}
@@ -268,7 +374,7 @@ func (d *DLPTH1C) readBroadbandAsync(out chan<- *TimeSeriesData) error {
 		}
 
 		// string parsing
-		broadband, err := parseBroadband(b)
+		broadband, err := parseBroadband(string(b))
 		if err != nil {
 			return err
 		}
