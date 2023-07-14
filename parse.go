@@ -5,46 +5,46 @@ import (
 	"strings"
 )
 
-func parseTemperature(b string) (temperature float64, err error) {
+func parseTemperature(b string) (TemperatureData, error) {
 	sep := strings.Split(b, "= ")
 
 	temperatureStr := strings.Split(sep[1], "\xb0C")[0]
-	temperature, err = strconv.ParseFloat(temperatureStr, 64)
+	temperature, err := strconv.ParseFloat(temperatureStr, 64)
 	if err != nil {
 		return -1, err
 	}
 
-	return temperature, nil
+	return TemperatureData(temperature), nil
 }
 
-func parseHumidity(b string) (humidity float64, err error) {
+func parseHumidity(b string) (HumidityData, error) {
 	sep := strings.Split(b, " = ")
 	if len(sep) < 2 {
 		return -1, DataMissingError()
 	}
 
 	humidityStr := strings.Split(sep[1], "%")[0]
-	humidity, err = strconv.ParseFloat(humidityStr, 64)
+	humidity, err := strconv.ParseFloat(humidityStr, 64)
 	if err != nil {
 		return -1, err
 	}
 
-	return humidity, nil
+	return HumidityData(humidity), nil
 }
 
-func parsePressure(b string) (pressure float64, err error) {
+func parsePressure(b string) (PressureData, error) {
 	sep := strings.Split(b, "= ")
 	if len(sep) < 2 {
 		return -1, DataMissingError()
 	}
 
 	pressureStr := strings.TrimSpace(strings.Split(strings.Split(sep[1], "\r")[0], "\x00")[0])
-	pressure, err = strconv.ParseFloat(pressureStr, 64)
+	pressure, err := strconv.ParseFloat(pressureStr, 64)
 	if err != nil {
 		return -1, err
 	}
 
-	return pressure, nil
+	return PressureData(pressure), nil
 }
 
 func parseTilt(b string) (tilt *TiltData, err error) {
@@ -128,7 +128,7 @@ func parseVibration(b string) (vibration *VibrationData, err error) {
 	return nil, DataMissingError()
 }
 
-func parseLight(b string) (light int8, err error) {
+func parseLight(b string) (LightData, error) {
 	sep := strings.Split(b, ": ")
 	if len(sep) < 2 {
 		return -1, DataMissingError()
@@ -141,8 +141,7 @@ func parseLight(b string) (light int8, err error) {
 	}
 
 	// light value consists of 8 bits (according to dlpdesing.com that made DLP-TH1C)
-	light = int8(light64)
-	return light, nil
+	return LightData(light64), nil
 }
 
 func parseSound(b string) (sound *SoundData, err error) {
@@ -189,17 +188,17 @@ func parseSound(b string) (sound *SoundData, err error) {
 	return nil, DataMissingError()
 }
 
-func parseBroadband(b string) (broadband float64, err error) {
+func parseBroadband(b string) (BroadbandData, error) {
 	sep := strings.Split(b, ": ")
 	if len(sep) < 2 {
 		return -1, DataMissingError()
 	}
 
 	broadbandStr := strings.Split(strings.Split(strings.Split(sep[1], "\r")[0], "\n")[0], "\x00")[0]
-	broadband, err = strconv.ParseFloat(broadbandStr, 64)
+	broadband, err := strconv.ParseFloat(broadbandStr, 64)
 	if err != nil {
 		return -1, err
 	}
 
-	return broadband, nil
+	return BroadbandData(broadband), nil
 }
