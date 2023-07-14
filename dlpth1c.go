@@ -43,7 +43,7 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 	var wg sync.WaitGroup
 
 	for {
-		allData := new(AllData)
+		allData := map[byte]SensorData{}
 		fmt.Println("wait 30 seconds...")
 
 		// request all value in ascii code
@@ -92,7 +92,7 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 			if err != nil {
 				DataMissingError()
 			}
-			allData.Temperature = temperature
+			allData[TemperatureASCIICmd] = temperature
 		}()
 
 		// string parsing (humidity)
@@ -103,7 +103,7 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 			if err != nil {
 				DataMissingError()
 			}
-			allData.Humidity = humidity
+			allData[HumidityASCIICmd] = humidity
 		}()
 
 		// string parsing (pressure)
@@ -114,7 +114,7 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 			if err != nil {
 				DataMissingError()
 			}
-			allData.Pressure = pressure
+			allData[PressureASCIICmd] = pressure
 		}()
 
 		// string parsing (tilt)
@@ -125,7 +125,7 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 			if err != nil {
 				DataMissingError()
 			}
-			allData.Tilt = tilt
+			allData[TiltASCIICmd] = tilt
 		}()
 
 		// string parsing (vibration X, Y, Z in order)
@@ -136,7 +136,7 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 			if err != nil {
 				DataMissingError()
 			}
-			allData.VibrationX = vibrationX
+			allData[VibrationXASCIICmd] = vibrationX
 		}()
 
 		go func() {
@@ -146,7 +146,7 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 			if err != nil {
 				DataMissingError()
 			}
-			allData.VibrationY = vibrationY
+			allData[VibrationYASCIICmd] = vibrationY
 		}()
 
 		go func() {
@@ -156,7 +156,7 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 			if err != nil {
 				DataMissingError()
 			}
-			allData.VibrationZ = vibrationZ
+			allData[VibrationZASCIICmd] = vibrationZ
 		}()
 
 		// string parsing (light)
@@ -167,7 +167,7 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 			if err != nil {
 				DataMissingError()
 			}
-			allData.Light = light
+			allData[LightASCIICmd] = light
 		}()
 
 		// string parsing (sound)
@@ -178,7 +178,7 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 			if err != nil {
 				DataMissingError()
 			}
-			allData.Sound = sound
+			allData[SoundASCIICmd] = sound
 		}()
 
 		// string parsing (broadband)
@@ -189,7 +189,7 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 			if err != nil {
 				DataMissingError()
 			}
-			allData.Broadband = broadband
+			allData[BroadbandASCIICmd] = broadband
 		}()
 
 		wg.Wait()
@@ -216,7 +216,12 @@ func (d *DLPTH1C) readTemperatureAsync(out chan<- *TimeSeriesData) error {
 			return err
 		}
 
-		out <- &(TimeSeriesData{Time: t, Data: temperature})
+		// it goes out to the channel
+		result := new(TimeSeriesData)
+		result.Time = t
+		result.Data = make(map[byte]SensorData)
+		result.Data[TemperatureASCIICmd] = temperature
+		out <- result
 	}
 }
 
@@ -238,7 +243,12 @@ func (d *DLPTH1C) readHumidityAsync(out chan<- *TimeSeriesData) error {
 			return err
 		}
 
-		out <- &(TimeSeriesData{Time: t, Data: humidity})
+		// it goes out to the channel
+		result := new(TimeSeriesData)
+		result.Time = t
+		result.Data = make(map[byte]SensorData)
+		result.Data[HumidityASCIICmd] = humidity
+		out <- result
 	}
 }
 
@@ -260,7 +270,12 @@ func (d *DLPTH1C) readPressureAsync(out chan<- *TimeSeriesData) error {
 			return err
 		}
 
-		out <- &(TimeSeriesData{Time: t, Data: pressure})
+		// it goes out to the channel
+		result := new(TimeSeriesData)
+		result.Time = t
+		result.Data = make(map[byte]SensorData)
+		result.Data[PressureASCIICmd] = pressure
+		out <- result
 	}
 }
 
@@ -282,7 +297,12 @@ func (d *DLPTH1C) readTiltAsync(out chan<- *TimeSeriesData) error {
 			return err
 		}
 
-		out <- &(TimeSeriesData{Time: t, Data: tilt})
+		// it goes out to the channel
+		result := new(TimeSeriesData)
+		result.Time = t
+		result.Data = make(map[byte]SensorData)
+		result.Data[TiltASCIICmd] = tilt
+		out <- result
 	}
 }
 
@@ -312,7 +332,11 @@ func (d *DLPTH1C) readVibrationAsync(cmd byte, out chan<- *TimeSeriesData) error
 		}
 
 		// it goes out to the channel
-		out <- &(TimeSeriesData{Time: t, Data: vibration})
+		result := new(TimeSeriesData)
+		result.Time = t
+		result.Data = make(map[byte]SensorData)
+		result.Data[cmd] = vibration
+		out <- result
 	}
 }
 
@@ -334,7 +358,12 @@ func (d *DLPTH1C) readLightAsync(out chan<- *TimeSeriesData) error {
 			return err
 		}
 
-		out <- &(TimeSeriesData{Time: t, Data: light})
+		// it goes out to the channel
+		result := new(TimeSeriesData)
+		result.Time = t
+		result.Data = make(map[byte]SensorData)
+		result.Data[LightASCIICmd] = light
+		out <- result
 	}
 }
 
@@ -357,7 +386,11 @@ func (d *DLPTH1C) readSoundAsync(out chan<- *TimeSeriesData) error {
 		}
 
 		// it goes out to the channel
-		out <- &TimeSeriesData{Time: t, Data: sound}
+		result := new(TimeSeriesData)
+		result.Time = t
+		result.Data = make(map[byte]SensorData)
+		result.Data[SoundASCIICmd] = sound
+		out <- result
 	}
 }
 
@@ -379,7 +412,12 @@ func (d *DLPTH1C) readBroadbandAsync(out chan<- *TimeSeriesData) error {
 			return err
 		}
 
-		out <- &(TimeSeriesData{Time: t, Data: broadband})
+		// it goes out to the channel
+		result := new(TimeSeriesData)
+		result.Time = t
+		result.Data = make(map[byte]SensorData)
+		result.Data[BroadbandASCIICmd] = broadband
+		out <- result
 	}
 }
 

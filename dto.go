@@ -20,7 +20,7 @@ type BroadbandData float64
 
 type TimeSeriesData struct {
 	Time time.Time
-	Data SensorData
+	Data map[byte]SensorData
 }
 
 type TiltData struct {
@@ -40,18 +40,19 @@ type SoundData struct {
 	Amp  [6]float64
 }
 
-type AllData struct {
-	Temperature TemperatureData
-	Humidity    HumidityData
-	Pressure    PressureData
-	Tilt        *TiltData
-	VibrationX  *VibrationData
-	VibrationY  *VibrationData
-	VibrationZ  *VibrationData
-	Light       LightData
-	Sound       *SoundData
-	Broadband   BroadbandData
-}
+// 바꾼 이유 설명
+// type AllData struct {
+// 	Temperature TemperatureData
+// 	Humidity    HumidityData
+// 	Pressure    PressureData
+// 	Tilt        *TiltData
+// 	VibrationX  *VibrationData
+// 	VibrationY  *VibrationData
+// 	VibrationZ  *VibrationData
+// 	Light       LightData
+// 	Sound       *SoundData
+// 	Broadband   BroadbandData
+// }
 
 func (temperatureData TemperatureData) print() {
 	fmt.Printf("Temperature: %+v(℃)\n", temperatureData)
@@ -105,15 +106,15 @@ func (broadbanddata BroadbandData) print() {
 	fmt.Printf("Broadband: %+v\n", broadbanddata)
 }
 
-func (allData *AllData) print() {
-	allData.Temperature.print()
-	allData.Humidity.print()
-	allData.Pressure.print()
-	allData.Tilt.print()
-	allData.VibrationX.print()
-	allData.VibrationY.print()
-	allData.VibrationZ.print()
-	allData.Light.print()
-	allData.Sound.print()
-	allData.Broadband.print()
-}
+// func (allData *AllData) print() {
+// 	allData.Temperature.print()
+// 	allData.Humidity.print()
+// 	allData.Pressure.print()
+// 	allData.Tilt.print()
+// 	allData.VibrationX.print()
+// 	allData.VibrationY.print()
+// 	allData.VibrationZ.print()
+// 	allData.Light.print()
+// 	allData.Sound.print()
+// 	allData.Broadband.print()
+// }
