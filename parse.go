@@ -1,16 +1,21 @@
 package main
 
 import (
+	"log"
 	"strconv"
 	"strings"
 )
 
 func parseTemperature(b string) (TemperatureData, error) {
 	sep := strings.Split(b, "= ")
+	if len(sep) < 2 {
+		return -1, DataMissingError()
+	}
 
 	temperatureStr := strings.Split(sep[1], "\xb0C")[0]
 	temperature, err := strconv.ParseFloat(temperatureStr, 64)
 	if err != nil {
+		log.Print(b)
 		return -1, err
 	}
 
@@ -18,14 +23,16 @@ func parseTemperature(b string) (TemperatureData, error) {
 }
 
 func parseHumidity(b string) (HumidityData, error) {
-	sep := strings.Split(b, " = ")
+	sep := strings.Split(b, "= ")
 	if len(sep) < 2 {
+		log.Print(b)
 		return -1, DataMissingError()
 	}
 
 	humidityStr := strings.Split(sep[1], "%")[0]
 	humidity, err := strconv.ParseFloat(humidityStr, 64)
 	if err != nil {
+		log.Print(b)
 		return -1, err
 	}
 
@@ -35,12 +42,14 @@ func parseHumidity(b string) (HumidityData, error) {
 func parsePressure(b string) (PressureData, error) {
 	sep := strings.Split(b, "= ")
 	if len(sep) < 2 {
+		log.Print(b)
 		return -1, DataMissingError()
 	}
 
 	pressureStr := strings.TrimSpace(strings.Split(strings.Split(sep[1], "\r")[0], "\x00")[0])
 	pressure, err := strconv.ParseFloat(pressureStr, 64)
 	if err != nil {
+		log.Print(b)
 		return -1, err
 	}
 
@@ -53,6 +62,7 @@ func parseTilt(b string) (tilt *TiltData, err error) {
 
 	sep := strings.Split(b, ":")
 	if len(sep) < 4 {
+		log.Print(b)
 		return nil, DataMissingError()
 	}
 
@@ -62,14 +72,17 @@ func parseTilt(b string) (tilt *TiltData, err error) {
 
 	xAxis, err := strconv.ParseInt(xAxisStr, 10, 64)
 	if err != nil {
+		log.Print(b)
 		return nil, err
 	}
 	yAxis, err := strconv.ParseInt(yAxisStr, 10, 64)
 	if err != nil {
+		log.Print(b)
 		return nil, err
 	}
 	zAxis, err := strconv.ParseInt(zAxisStr, 10, 64)
 	if err != nil {
+		log.Print(b)
 		return nil, err
 	}
 
@@ -85,6 +98,7 @@ func parseVibration(b string) (vibration *VibrationData, err error) {
 	// string parsing
 	lines := strings.Split(b, "\n")
 	if len(lines) < 7 {
+		log.Print(b)
 		return nil, DataMissingError()
 	}
 
@@ -106,12 +120,14 @@ func parseVibration(b string) (vibration *VibrationData, err error) {
 		peakStr = strings.TrimLeft(peakStr, " ")
 		peak, err := strconv.ParseInt(peakStr, 10, 64)
 		if err != nil {
+			log.Print(b)
 			return nil, err
 		}
 
 		ampStr := strings.Split(strings.Split(sep[2], "\r")[0], "\x00")[0]
 		amp, err := strconv.ParseFloat(ampStr, 64)
 		if err != nil {
+			log.Print(b)
 			return nil, err
 		}
 
@@ -125,18 +141,21 @@ func parseVibration(b string) (vibration *VibrationData, err error) {
 		}
 	}
 
+	log.Print(b)
 	return nil, DataMissingError()
 }
 
 func parseLight(b string) (LightData, error) {
 	sep := strings.Split(b, ": ")
 	if len(sep) < 2 {
+		log.Print(b)
 		return -1, DataMissingError()
 	}
 
 	lightStr := strings.Split(strings.Split(strings.Split(sep[1], "\r")[0], "\n")[0], "\x00")[0]
 	light64, err := strconv.ParseInt(lightStr, 10, 8)
 	if err != nil {
+		log.Print(b)
 		return -1, err
 	}
 
@@ -149,6 +168,7 @@ func parseSound(b string) (sound *SoundData, err error) {
 
 	lines := strings.Split(b, "\n")
 	if len(lines) < 7 {
+		log.Print(b)
 		return nil, DataMissingError()
 	}
 
@@ -166,12 +186,14 @@ func parseSound(b string) (sound *SoundData, err error) {
 		peakStr = strings.TrimLeft(peakStr, " ")
 		peak, err := strconv.ParseInt(peakStr, 10, 64)
 		if err != nil {
+			log.Print(b)
 			return nil, err
 		}
 
 		ampStr := strings.Split(strings.Split(sep[2], "\r")[0], "\x00")[0]
 		amp, err := strconv.ParseFloat(ampStr, 64)
 		if err != nil {
+			log.Print(b)
 			return nil, err
 		}
 
@@ -185,6 +207,7 @@ func parseSound(b string) (sound *SoundData, err error) {
 		}
 	}
 
+	log.Print(b)
 	return nil, DataMissingError()
 }
 
@@ -197,6 +220,7 @@ func parseBroadband(b string) (BroadbandData, error) {
 	broadbandStr := strings.Split(strings.Split(strings.Split(sep[1], "\r")[0], "\n")[0], "\x00")[0]
 	broadband, err := strconv.ParseFloat(broadbandStr, 64)
 	if err != nil {
+		log.Print(b)
 		return -1, err
 	}
 

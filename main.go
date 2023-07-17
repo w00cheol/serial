@@ -42,7 +42,7 @@ func main() {
 	// d.set16G()
 
 	// the type of chan must be same as the return type of the function what you call.
-	var in chan *TimeSeriesData = make(chan *TimeSeriesData, 1)
+	var in chan *TimeSeriesData = make(chan *TimeSeriesData)
 	defer close(in)
 
 	var cmd string
@@ -67,10 +67,10 @@ func main() {
 				go d.readTemperatureAsync(in)
 
 			case string(HumidityASCIICmd):
-				go d.readPressureAsync(in)
+				go d.readHumidityAsync(in)
 
 			case string(PressureASCIICmd):
-				go d.readHumidityAsync(in)
+				go d.readPressureAsync(in)
 
 			case string(TiltASCIICmd):
 				go d.readTiltAsync(in)
@@ -113,23 +113,24 @@ func main() {
 	// If option flag is true, which means user wants recieve only certain kind of data
 	if option {
 		for timeSeriesData := range in {
-			for _, c := range cmd {
+			for _, c := range []byte(cmd) {
 				// data extracting
-				if _, exist := timeSeriesData.Data[byte(c)]; !exist {
-					log.Fatal("WRONG ARGUMENTS...")
+				if _, exist := timeSeriesData.Data[c]; !exist {
+					log.Fatalf("%+v IS A WRONG ARGUMENT...", string(c))
 				}
 
-				timeSeriesData.Data[byte(c)].print()
+				timeSeriesData.Data[c].print()
 			}
 			fmt.Printf("Time: %+v\n\n", timeSeriesData.Time)
 		}
 	} else {
-		// It will be called when user execute "all" command or only 1 kind of data command
+		// It will be called when user executes "all" command or only 1 kind of data command
 		for timeSeriesData := range in {
 			for _, data := range timeSeriesData.Data {
 				data.print()
-				fmt.Printf("Time: %+v\n\n", timeSeriesData.Time)
 			}
+
+			fmt.Printf("Time: %+v\n\n", timeSeriesData.Time)
 		}
 	}
 }
