@@ -1,4 +1,4 @@
-module main
+module github.com/w00cheol/serial
 
 go 1.20
 
