@@ -60,6 +60,11 @@ func (pressure PressureData) print() {
 }
 
 func (tiltData *TiltData) print() {
+	if tiltData == nil {
+		fmt.Printf("tiltData is nil\n")
+		return
+	}
+
 	fmt.Println("Tilt data below")
 
 	fmt.Printf("XAxis: %+v\n", tiltData.XAxis)
@@ -68,6 +73,11 @@ func (tiltData *TiltData) print() {
 }
 
 func (vibrationData *VibrationData) print() {
+	if vibrationData == nil {
+		fmt.Printf("vibrationData is nil\n")
+		return
+	}
+
 	var axis string
 
 	if vibrationData.Axis == VibrationXASCIICmd {
@@ -94,6 +104,11 @@ func (lightData LightData) print() {
 }
 
 func (soundData *SoundData) print() {
+	if soundData == nil {
+		fmt.Printf("soundData is nil\n")
+		return
+	}
+
 	fmt.Println("Sound data below")
 
 	fmt.Printf("Fund: %+v(Hz)\t", soundData.Peak[0])
