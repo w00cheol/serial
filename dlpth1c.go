@@ -71,12 +71,15 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 		// read from response
 		b := make([]byte, 1024)
 		if _, err := d.vcp.Read(b); err != nil {
+			log.Print(err)
 			return err
 		}
 
 		sep := strings.Split(string(b), "\n")
 		if len(sep) < 35 {
-			return DataMissingError()
+			log.Print("Data Missing.")
+			log.Print("Try again.")
+			continue
 		}
 
 		// discard few lines at first for parsing
@@ -151,11 +154,10 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 		go func() {
 			defer wg.Done()
 
-			vibrationX, err := parseVibration(strings.Join(sep[i+4:i+11], "\n"))
+			vibrationX, err := parseVibration(VibrationXASCIICmd, strings.Join(sep[i+4:i+11], "\n"))
 			if err != nil {
 				log.Print(err)
 			}
-			vibrationX.Axis = VibrationXASCIICmd
 
 			mapWriteChan <- &MapWriteData{VibrationXASCIICmd, vibrationX}
 		}()
@@ -163,11 +165,10 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 		go func() {
 			defer wg.Done()
 
-			vibrationY, err := parseVibration(strings.Join(sep[i+11:i+18], "\n"))
+			vibrationY, err := parseVibration(VibrationYASCIICmd, strings.Join(sep[i+11:i+18], "\n"))
 			if err != nil {
 				log.Print(err)
 			}
-			vibrationY.Axis = VibrationYASCIICmd
 
 			mapWriteChan <- &MapWriteData{VibrationYASCIICmd, vibrationY}
 		}()
@@ -175,11 +176,10 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 		go func() {
 			defer wg.Done()
 
-			vibrationZ, err := parseVibration(strings.Join(sep[i+18:i+25], "\n"))
+			vibrationZ, err := parseVibration(VibrationZASCIICmd, strings.Join(sep[i+18:i+25], "\n"))
 			if err != nil {
 				log.Print(err)
 			}
-			vibrationZ.Axis = VibrationZASCIICmd
 
 			mapWriteChan <- &MapWriteData{VibrationZASCIICmd, vibrationZ}
 		}()
@@ -192,6 +192,7 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 			if err != nil {
 				log.Print(err)
 			}
+
 			mapWriteChan <- &MapWriteData{LightASCIICmd, light}
 		}()
 
@@ -203,6 +204,7 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 			if err != nil {
 				log.Print(err)
 			}
+
 			mapWriteChan <- &MapWriteData{SoundASCIICmd, sound}
 		}()
 
@@ -214,6 +216,7 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 			if err != nil {
 				log.Print(err)
 			}
+
 			mapWriteChan <- &MapWriteData{BroadbandASCIICmd, broadband}
 		}()
 
@@ -351,11 +354,10 @@ func (d *DLPTH1C) readVibrationAsync(cmd byte, out chan<- *TimeSeriesData) error
 		}
 
 		// string parsing
-		vibration, err := parseVibration(string(b))
+		vibration, err := parseVibration(cmd, string(b))
 		if err != nil {
 			return err
 		}
-		vibration.Axis = cmd
 
 		// it goes out to the channel
 

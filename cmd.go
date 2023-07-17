@@ -1,6 +1,9 @@
 // Define command constant for request in this file
 package main
 
+// It will be wrapped as return type when parse error occurs
+const ParseErrorCodeDLPTH1C = -1
+
 type BinaryCmd byte
 type ASCIICmd byte
 

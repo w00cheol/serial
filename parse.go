@@ -9,14 +9,14 @@ import (
 func parseTemperature(b string) (TemperatureData, error) {
 	sep := strings.Split(b, "= ")
 	if len(sep) < 2 {
-		return -1, DataMissingError()
+		return TemperatureData(ParseErrorCodeDLPTH1C), DataMissingError()
 	}
 
 	temperatureStr := strings.Split(sep[1], "\xb0C")[0]
 	temperature, err := strconv.ParseFloat(temperatureStr, 64)
 	if err != nil {
 		log.Print(b)
-		return -1, err
+		return TemperatureData(ParseErrorCodeDLPTH1C), err
 	}
 
 	return TemperatureData(temperature), nil
@@ -26,14 +26,14 @@ func parseHumidity(b string) (HumidityData, error) {
 	sep := strings.Split(b, "= ")
 	if len(sep) < 2 {
 		log.Print(b)
-		return -1, DataMissingError()
+		return HumidityData(ParseErrorCodeDLPTH1C), DataMissingError()
 	}
 
 	humidityStr := strings.Split(sep[1], "%")[0]
 	humidity, err := strconv.ParseFloat(humidityStr, 64)
 	if err != nil {
 		log.Print(b)
-		return -1, err
+		return HumidityData(ParseErrorCodeDLPTH1C), err
 	}
 
 	return HumidityData(humidity), nil
@@ -43,14 +43,14 @@ func parsePressure(b string) (PressureData, error) {
 	sep := strings.Split(b, "= ")
 	if len(sep) < 2 {
 		log.Print(b)
-		return -1, DataMissingError()
+		return PressureData(ParseErrorCodeDLPTH1C), DataMissingError()
 	}
 
 	pressureStr := strings.TrimSpace(strings.Split(strings.Split(sep[1], "\r")[0], "\x00")[0])
 	pressure, err := strconv.ParseFloat(pressureStr, 64)
 	if err != nil {
 		log.Print(b)
-		return -1, err
+		return PressureData(ParseErrorCodeDLPTH1C), err
 	}
 
 	return PressureData(pressure), nil
@@ -94,7 +94,7 @@ func parseTilt(b string) (tilt *TiltData, err error) {
 	return tilt, nil
 }
 
-func parseVibration(b string) (vibration *VibrationData, err error) {
+func parseVibration(cmd byte, b string) (vibration *VibrationData, err error) {
 	// string parsing
 	lines := strings.Split(b, "\n")
 	if len(lines) < 7 {
@@ -132,6 +132,7 @@ func parseVibration(b string) (vibration *VibrationData, err error) {
 		}
 
 		// set value into response struct
+		vibration.Axis = cmd
 		vibration.Peak[i] = peak
 		vibration.Amp[i] = amp
 
@@ -149,14 +150,14 @@ func parseLight(b string) (LightData, error) {
 	sep := strings.Split(b, ": ")
 	if len(sep) < 2 {
 		log.Print(b)
-		return -1, DataMissingError()
+		return LightData(ParseErrorCodeDLPTH1C), DataMissingError()
 	}
 
 	lightStr := strings.Split(strings.Split(strings.Split(sep[1], "\r")[0], "\n")[0], "\x00")[0]
 	light64, err := strconv.ParseInt(lightStr, 10, 8)
 	if err != nil {
 		log.Print(b)
-		return -1, err
+		return LightData(ParseErrorCodeDLPTH1C), err
 	}
 
 	// light value consists of 8 bits (according to dlpdesing.com that made DLP-TH1C)
@@ -214,14 +215,14 @@ func parseSound(b string) (sound *SoundData, err error) {
 func parseBroadband(b string) (BroadbandData, error) {
 	sep := strings.Split(b, ": ")
 	if len(sep) < 2 {
-		return -1, DataMissingError()
+		return BroadbandData(ParseErrorCodeDLPTH1C), DataMissingError()
 	}
 
 	broadbandStr := strings.Split(strings.Split(strings.Split(sep[1], "\r")[0], "\n")[0], "\x00")[0]
 	broadband, err := strconv.ParseFloat(broadbandStr, 64)
 	if err != nil {
 		log.Print(b)
-		return -1, err
+		return BroadbandData(ParseErrorCodeDLPTH1C), err
 	}
 
 	return BroadbandData(broadband), nil
