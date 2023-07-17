@@ -1,4 +1,5 @@
 # Serial communication with DLP-TH1C
+[GO PACKAGE LINK](https://pkg.go.dev/github.com/w00cheol/serial)
 
 Provides only functions that communicate using ascii.  
 In my environment, using byte, the dlp-th1c sensor loses some data for some reason (but I couldn't find).  
@@ -12,10 +13,24 @@ So it is decided to call readAllAsync(chan) function and just extract only the k
 
 ### USAGE
 ```console
-    git clone https://github.com/w00cheol/serial.git
-    cd serial
+    go mod init (YOUR_MODULE_NAME)
+    go get github.com/w00cheol/serial
+```  
+
+```go
+package main
+
+import "github.com/w00cheol/serial"
+
+func main() {
+    serial.InitPort("PORTNAME_AS_STRING") // e.g) "/dev/ttyACM1", default is "/dev/ttyACM0"
+    serial.RunWithCommand("COMMAND_AS_STRING") // e.g) "t"
+}
+```  
+
+```console
     go mod tidy
-    go run . (COMMAND)
+    go run .
 ```
 
 
