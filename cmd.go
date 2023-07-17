@@ -1,5 +1,5 @@
 // Define command constant for request in this file
-package main
+package serial
 
 // It will be wrapped as return type when parse error occurs
 const ParseErrorCodeDLPTH1C = -1

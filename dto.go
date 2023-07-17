@@ -1,5 +1,5 @@
 // Define Data type in this file
-package main
+package serial
 
 import (
 	"fmt"

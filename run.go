@@ -1,13 +1,13 @@
-package main
+package serial
 
 import (
 	"fmt"
 	"log"
-	"os"
 )
 
 // set custom option value as false
 var option bool = false
+var port string = "/dev/ttyACM0"
 
 func usage() {
 	fmt.Printf("\n===============================================================\n")
@@ -27,10 +27,14 @@ func usage() {
 	fmt.Printf("===============================================================\n\n")
 }
 
-func main() {
+func InitPort(initPort string) {
+	port = initPort
+}
+
+func RunWithCommand(cmd string) {
 	// portName must be according to your environment.
 	// use "ll /dev/tty*" to see all the serial port.
-	d := NewDLPTH1C("/dev/ttyACM0")
+	d := NewDLPTH1C(port)
 
 	// Make sure to close it later.
 	defer d.vcp.Close()
@@ -45,8 +49,7 @@ func main() {
 	var in chan *TimeSeriesData = make(chan *TimeSeriesData)
 	defer close(in)
 
-	var cmd string
-	if len(os.Args) == 1 {
+	if len(cmd) == 0 {
 		usage()
 		return
 
@@ -54,8 +57,6 @@ func main() {
 		log.Fatal("TOO MANY ARGUMENTS...")
 
 	} else {
-		cmd = os.Args[1]
-
 		if cmd == "all" {
 			// Read all
 			go d.readAllAsync(in)

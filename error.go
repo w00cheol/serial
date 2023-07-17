@@ -1,5 +1,5 @@
 // Define custom error in this file
-package main
+package serial
 
 import "errors"
 
