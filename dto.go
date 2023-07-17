@@ -23,6 +23,12 @@ type TimeSeriesData struct {
 	Data map[byte]SensorData
 }
 
+// Define type for multiple threads to use channel to access map data type
+type MapWriteData struct {
+	Key   byte
+	Value SensorData
+}
+
 type TiltData struct {
 	XAxis int64
 	YAxis int64
@@ -31,6 +37,7 @@ type TiltData struct {
 
 // It could be VibrationX, VibrationY, and also VibratoinY
 type VibrationData struct {
+	Axis byte
 	Peak [6]int64
 	Amp  [6]float64
 }
@@ -61,19 +68,29 @@ func (tiltData *TiltData) print() {
 }
 
 func (vibrationData *VibrationData) print() {
-	fmt.Println("Vibration data below")
+	var axis string
 
-	fmt.Printf("Fund: %+v(Hz)\t", vibrationData.Peak[0])
-	fmt.Printf("Amp: %+v\n", vibrationData.Amp[0])
+	if vibrationData.Axis == VibrationXASCIICmd {
+		axis = "X"
+	} else if vibrationData.Axis == VibrationYASCIICmd {
+		axis = "Y"
+	} else {
+		axis = "Z"
+	}
+
+	fmt.Printf("Vibration%+v data below\n", axis)
+
+	fmt.Printf("Fund%+v: %+v(Hz)\t", axis, vibrationData.Peak[0])
+	fmt.Printf("Amp%+v: %+v\n", axis, vibrationData.Amp[0])
 
 	for i := 1; i < 6; i++ {
-		fmt.Printf("Peak%d: %+v(Hz)\t", i+1, vibrationData.Peak[i])
-		fmt.Printf("Amp: %+v\n", vibrationData.Amp[i])
+		fmt.Printf("Peak%+v%d: %+v(Hz)\t", axis, i+1, vibrationData.Peak[i])
+		fmt.Printf("Amp%+v: %+v\n", axis, vibrationData.Amp[i])
 	}
 }
 
 func (lightData LightData) print() {
-	fmt.Printf("Light: %d\n", lightData)
+	fmt.Printf("Light: %+v\n", lightData)
 }
 
 func (soundData *SoundData) print() {

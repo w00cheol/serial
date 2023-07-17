@@ -40,6 +40,8 @@ func NewDLPTH1C(portName string) *DLPTH1C {
 }
 
 func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
+	const numParsingFuntion int = 10
+	const numMapWriteFunction int = 1
 	var wg sync.WaitGroup
 
 	for {
@@ -83,16 +85,33 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 			i++
 		}
 
-		// string parsing (temperature)
-		wg.Add(10)
+		wg.Add(numParsingFuntion)
+		wg.Add(numMapWriteFunction)
 
+		// https://go.dev/doc/faq#atomic_maps
+		// Map write fuction to avoid "concurrent map writes error"
+		// "Map operations" not defined to be atomic,
+		// so it is decided that use channel to store data.
+		var mapWriteChan chan *MapWriteData = make(chan *MapWriteData)
 		go func() {
 			defer wg.Done()
+			defer close(mapWriteChan)
+
+			for i := 0; i < numParsingFuntion; i++ {
+				writeData := <-mapWriteChan
+				allData[writeData.Key] = writeData.Value
+			}
+		}()
+
+		// string parsing (temperature)
+		go func() {
+			defer wg.Done()
+
 			temperature, err := parseTemperature(sep[i])
 			if err != nil {
-				DataMissingError()
+				log.Print(err)
 			}
-			allData[TemperatureASCIICmd] = temperature
+			mapWriteChan <- &MapWriteData{TemperatureASCIICmd, temperature}
 		}()
 
 		// string parsing (humidity)
@@ -101,9 +120,9 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 
 			humidity, err := parseHumidity(sep[i+1])
 			if err != nil {
-				DataMissingError()
+				log.Print(err)
 			}
-			allData[HumidityASCIICmd] = humidity
+			mapWriteChan <- &MapWriteData{HumidityASCIICmd, humidity}
 		}()
 
 		// string parsing (pressure)
@@ -112,9 +131,9 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 
 			pressure, err := parsePressure(sep[i+2])
 			if err != nil {
-				DataMissingError()
+				log.Print(err)
 			}
-			allData[PressureASCIICmd] = pressure
+			mapWriteChan <- &MapWriteData{PressureASCIICmd, pressure}
 		}()
 
 		// string parsing (tilt)
@@ -123,9 +142,9 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 
 			tilt, err := parseTilt(sep[i+3])
 			if err != nil {
-				DataMissingError()
+				log.Print(err)
 			}
-			allData[TiltASCIICmd] = tilt
+			mapWriteChan <- &MapWriteData{TiltASCIICmd, tilt}
 		}()
 
 		// string parsing (vibration X, Y, Z in order)
@@ -134,9 +153,11 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 
 			vibrationX, err := parseVibration(strings.Join(sep[i+4:i+11], "\n"))
 			if err != nil {
-				DataMissingError()
+				log.Print(err)
 			}
-			allData[VibrationXASCIICmd] = vibrationX
+			vibrationX.Axis = VibrationXASCIICmd
+
+			mapWriteChan <- &MapWriteData{VibrationXASCIICmd, vibrationX}
 		}()
 
 		go func() {
@@ -144,9 +165,11 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 
 			vibrationY, err := parseVibration(strings.Join(sep[i+11:i+18], "\n"))
 			if err != nil {
-				DataMissingError()
+				log.Print(err)
 			}
-			allData[VibrationYASCIICmd] = vibrationY
+			vibrationY.Axis = VibrationYASCIICmd
+
+			mapWriteChan <- &MapWriteData{VibrationYASCIICmd, vibrationY}
 		}()
 
 		go func() {
@@ -154,9 +177,11 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 
 			vibrationZ, err := parseVibration(strings.Join(sep[i+18:i+25], "\n"))
 			if err != nil {
-				DataMissingError()
+				log.Print(err)
 			}
-			allData[VibrationZASCIICmd] = vibrationZ
+			vibrationZ.Axis = VibrationZASCIICmd
+
+			mapWriteChan <- &MapWriteData{VibrationZASCIICmd, vibrationZ}
 		}()
 
 		// string parsing (light)
@@ -165,9 +190,9 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 
 			light, err := parseLight(sep[i+25])
 			if err != nil {
-				DataMissingError()
+				log.Print(err)
 			}
-			allData[LightASCIICmd] = light
+			mapWriteChan <- &MapWriteData{LightASCIICmd, light}
 		}()
 
 		// string parsing (sound)
@@ -176,9 +201,9 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 
 			sound, err := parseSound(strings.Join(sep[i+26:i+33], "\n"))
 			if err != nil {
-				DataMissingError()
+				log.Print(err)
 			}
-			allData[SoundASCIICmd] = sound
+			mapWriteChan <- &MapWriteData{SoundASCIICmd, sound}
 		}()
 
 		// string parsing (broadband)
@@ -187,9 +212,9 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 
 			broadband, err := parseBroadband(sep[i+33])
 			if err != nil {
-				DataMissingError()
+				log.Print(err)
 			}
-			allData[BroadbandASCIICmd] = broadband
+			mapWriteChan <- &MapWriteData{BroadbandASCIICmd, broadband}
 		}()
 
 		wg.Wait()
@@ -330,8 +355,10 @@ func (d *DLPTH1C) readVibrationAsync(cmd byte, out chan<- *TimeSeriesData) error
 		if err != nil {
 			return err
 		}
+		vibration.Axis = cmd
 
 		// it goes out to the channel
+
 		result := new(TimeSeriesData)
 		result.Time = t
 		result.Data = make(map[byte]SensorData)
