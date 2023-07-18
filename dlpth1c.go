@@ -5,7 +5,6 @@
 package serial
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"strings"
@@ -23,11 +22,12 @@ type DLPTH1C struct {
 func NewDLPTH1C(portName string) *DLPTH1C {
 	// Set up options.
 	options := serial.OpenOptions{
-		PortName:        portName,
-		BaudRate:        115200,
-		DataBits:        8,
-		StopBits:        1,
-		MinimumReadSize: 8,
+		PortName:              portName,
+		BaudRate:              115200,
+		DataBits:              8,
+		StopBits:              1,
+		InterCharacterTimeout: 1000,
+		MinimumReadSize:       0,
 	}
 
 	// Open the port.
@@ -45,8 +45,16 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 	var wg sync.WaitGroup
 
 	for {
+		// Assign byte array that will be given the sensor data
+		b := make([]byte, 0)
+		// Assigns 1 byte array where bytes from the port will be stored
+		buff := make([]byte, 1)
+
+		// Assign return value
 		allData := map[byte]SensorData{}
-		fmt.Println("wait 30 seconds...")
+
+		// Get time
+		t := time.Now()
 
 		// request all value in ascii code
 		// ([]byte{'t','h','p','a','x','v','w','l','f','b',})
@@ -64,15 +72,16 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 				BroadbandASCIICmd,
 			})
 
-		// need to wait response for 30 seconds because of data loss issue
-		t := time.Now()
-		time.Sleep(30 * time.Second)
-
-		// read from response
-		b := make([]byte, 1024)
-		if _, err := d.vcp.Read(b); err != nil {
-			log.Print(err)
-			return err
+		// Read from response
+		for {
+			n, err := d.vcp.Read(buff)
+			if err != nil {
+				if err == io.EOF || n == 0 {
+					break
+				}
+				log.Fatal(err)
+			}
+			b = append(b, buff...)
 		}
 
 		sep := strings.Split(string(b), "\n")
@@ -227,20 +236,32 @@ func (d *DLPTH1C) readAllAsync(out chan<- *TimeSeriesData) error {
 
 func (d *DLPTH1C) readTemperatureAsync(out chan<- *TimeSeriesData) error {
 	for {
+		// Assign byte array that will be given the sensor data
+		b := make([]byte, 0)
+		// Assigns 1 byte array where bytes from the port will be stored
+		buff := make([]byte, 1)
+
 		// request temperature value in ascii code
 		d.vcp.Write([]byte{TemperatureASCIICmd})
 		t := time.Now()
-		time.Sleep(2 * time.Second)
 
-		// read from response
-		b := make([]byte, 64)
-		if _, err := d.vcp.Read(b); err != nil {
-			return err
+		// Read from response
+		for {
+			n, err := d.vcp.Read(buff)
+			if err != nil {
+				if err == io.EOF || n == 0 {
+					break
+				}
+				log.Fatal(err)
+			}
+
+			b = append(b, buff...)
 		}
 
 		// string parsing
 		temperature, err := parseTemperature(string(b))
 		if err != nil {
+			log.Fatal(err)
 			return err
 		}
 
@@ -255,14 +276,26 @@ func (d *DLPTH1C) readTemperatureAsync(out chan<- *TimeSeriesData) error {
 
 func (d *DLPTH1C) readHumidityAsync(out chan<- *TimeSeriesData) error {
 	for {
-		// request humidity value in ascii code
+		// Assign byte array that will be given the sensor data
+		b := make([]byte, 0)
+		// Assigns 1 byte array where bytes from the port will be stored
+		buff := make([]byte, 1)
+
+		// request temperature value in ascii code
 		d.vcp.Write([]byte{HumidityASCIICmd})
 		t := time.Now()
-		time.Sleep(2 * time.Second)
 
-		b := make([]byte, 2048)
-		if _, err := d.vcp.Read(b); err != nil {
-			return err
+		// Read from response
+		for {
+			n, err := d.vcp.Read(buff)
+			if err != nil {
+				if err == io.EOF || n == 0 {
+					break
+				}
+				log.Fatal(err)
+			}
+
+			b = append(b, buff...)
 		}
 
 		// string parsing
@@ -282,14 +315,26 @@ func (d *DLPTH1C) readHumidityAsync(out chan<- *TimeSeriesData) error {
 
 func (d *DLPTH1C) readPressureAsync(out chan<- *TimeSeriesData) error {
 	for {
-		// request pressure value in ascii code
+		// Assign byte array that will be given the sensor data
+		b := make([]byte, 0)
+		// Assigns 1 byte array where bytes from the port will be stored
+		buff := make([]byte, 1)
+
+		// request temperature value in ascii code
 		d.vcp.Write([]byte{PressureASCIICmd})
 		t := time.Now()
-		time.Sleep(2 * time.Second)
 
-		b := make([]byte, 64)
-		if _, err := d.vcp.Read(b); err != nil {
-			return err
+		// Read from response
+		for {
+			n, err := d.vcp.Read(buff)
+			if err != nil {
+				if err == io.EOF || n == 0 {
+					break
+				}
+				log.Fatal(err)
+			}
+
+			b = append(b, buff...)
 		}
 
 		// string parsing
@@ -309,14 +354,26 @@ func (d *DLPTH1C) readPressureAsync(out chan<- *TimeSeriesData) error {
 
 func (d *DLPTH1C) readTiltAsync(out chan<- *TimeSeriesData) error {
 	for {
-		// request tilt value in ascii code
+		// Assign byte array that will be given the sensor data
+		b := make([]byte, 0)
+		// Assigns 1 byte array where bytes from the port will be stored
+		buff := make([]byte, 1)
+
+		// request temperature value in ascii code
 		d.vcp.Write([]byte{TiltASCIICmd})
 		t := time.Now()
-		time.Sleep(2 * time.Second)
 
-		b := make([]byte, 64)
-		if _, err := d.vcp.Read(b); err != nil {
-			return err
+		// Read from response
+		for {
+			n, err := d.vcp.Read(buff)
+			if err != nil {
+				if err == io.EOF || n == 0 {
+					break
+				}
+				log.Fatal(err)
+			}
+
+			b = append(b, buff...)
 		}
 
 		// string parsing
@@ -344,13 +401,26 @@ func (d *DLPTH1C) readVibrationAsync(cmd byte, out chan<- *TimeSeriesData) error
 			return InvalidCommandError()
 		}
 
+		// Assign byte array that will be given the sensor data
+		b := make([]byte, 0)
+		// Assigns 1 byte array where bytes from the port will be stored
+		buff := make([]byte, 1)
+
+		// request temperature value in ascii code
 		d.vcp.Write([]byte{cmd})
 		t := time.Now()
-		time.Sleep(2 * time.Second)
 
-		b := make([]byte, 256)
-		if _, err := d.vcp.Read(b); err != nil {
-			return err
+		// Read from response
+		for {
+			n, err := d.vcp.Read(buff)
+			if err != nil {
+				if err == io.EOF || n == 0 {
+					break
+				}
+				log.Fatal(err)
+			}
+
+			b = append(b, buff...)
 		}
 
 		// string parsing
@@ -371,14 +441,26 @@ func (d *DLPTH1C) readVibrationAsync(cmd byte, out chan<- *TimeSeriesData) error
 
 func (d *DLPTH1C) readLightAsync(out chan<- *TimeSeriesData) error {
 	for {
-		// request light value in ascii code
+		// Assign byte array that will be given the sensor data
+		b := make([]byte, 0)
+		// Assigns 1 byte array where bytes from the port will be stored
+		buff := make([]byte, 1)
+
+		// request temperature value in ascii code
 		d.vcp.Write([]byte{LightASCIICmd})
 		t := time.Now()
-		time.Sleep(2 * time.Second)
 
-		b := make([]byte, 32)
-		if _, err := d.vcp.Read(b); err != nil {
-			return err
+		// Read from response
+		for {
+			n, err := d.vcp.Read(buff)
+			if err != nil {
+				if err == io.EOF || n == 0 {
+					break
+				}
+				log.Fatal(err)
+			}
+
+			b = append(b, buff...)
 		}
 
 		// string parsing
@@ -398,14 +480,26 @@ func (d *DLPTH1C) readLightAsync(out chan<- *TimeSeriesData) error {
 
 func (d *DLPTH1C) readSoundAsync(out chan<- *TimeSeriesData) error {
 	for {
-		// request sound value in ascii code
+		// Assign byte array that will be given the sensor data
+		b := make([]byte, 0)
+		// Assigns 1 byte array where bytes from the port will be stored
+		buff := make([]byte, 1)
+
+		// request temperature value in ascii code
 		d.vcp.Write([]byte{SoundASCIICmd})
 		t := time.Now()
-		time.Sleep(2 * time.Second)
 
-		b := make([]byte, 256)
-		if _, err := d.vcp.Read(b); err != nil {
-			return err
+		// Read from response
+		for {
+			n, err := d.vcp.Read(buff)
+			if err != nil {
+				if err == io.EOF || n == 0 {
+					break
+				}
+				log.Fatal(err)
+			}
+
+			b = append(b, buff...)
 		}
 
 		// string parsing
@@ -425,14 +519,26 @@ func (d *DLPTH1C) readSoundAsync(out chan<- *TimeSeriesData) error {
 
 func (d *DLPTH1C) readBroadbandAsync(out chan<- *TimeSeriesData) error {
 	for {
-		// request sound value in ascii code
+		// Assign byte array that will be given the sensor data
+		b := make([]byte, 0)
+		// Assigns 1 byte array where bytes from the port will be stored
+		buff := make([]byte, 1)
+
+		// request temperature value in ascii code
 		d.vcp.Write([]byte{BroadbandASCIICmd})
 		t := time.Now()
-		time.Sleep(2 * time.Second)
 
-		b := make([]byte, 32)
-		if _, err := d.vcp.Read(b); err != nil {
-			return err
+		// Read from response
+		for {
+			n, err := d.vcp.Read(buff)
+			if err != nil {
+				if err == io.EOF || n == 0 {
+					break
+				}
+				log.Fatal(err)
+			}
+
+			b = append(b, buff...)
 		}
 
 		// string parsing
@@ -452,11 +558,19 @@ func (d *DLPTH1C) readBroadbandAsync(out chan<- *TimeSeriesData) error {
 
 func (d *DLPTH1C) set2G() error {
 	d.vcp.Write([]byte{Set2GASCIICmd})
-	time.Sleep(2 * time.Second)
 
-	b := make([]byte, 4)
-	if _, err := d.vcp.Read(b); err != nil {
-		return err
+	// Assigns 1 byte array where bytes from the port will be stored
+	buff := make([]byte, 1)
+
+	// Clear buffer
+	for {
+		n, err := d.vcp.Read(buff)
+		if err != nil {
+			if err == io.EOF || n == 0 {
+				break
+			}
+			log.Fatal(err)
+		}
 	}
 
 	return nil
@@ -464,11 +578,19 @@ func (d *DLPTH1C) set2G() error {
 
 func (d *DLPTH1C) set4G() error {
 	d.vcp.Write([]byte{Set4GASCIICmd})
-	time.Sleep(2 * time.Second)
 
-	b := make([]byte, 4)
-	if _, err := d.vcp.Read(b); err != nil {
-		return err
+	// Assigns 1 byte array where bytes from the port will be stored
+	buff := make([]byte, 1)
+
+	// Clear buffer
+	for {
+		n, err := d.vcp.Read(buff)
+		if err != nil {
+			if err == io.EOF || n == 0 {
+				break
+			}
+			log.Fatal(err)
+		}
 	}
 
 	return nil
@@ -476,11 +598,19 @@ func (d *DLPTH1C) set4G() error {
 
 func (d *DLPTH1C) set8G() error {
 	d.vcp.Write([]byte{Set8GASCIICmd})
-	time.Sleep(2 * time.Second)
 
-	b := make([]byte, 4)
-	if _, err := d.vcp.Read(b); err != nil {
-		return err
+	// Assigns 1 byte array where bytes from the port will be stored
+	buff := make([]byte, 1)
+
+	// Clear buffer
+	for {
+		n, err := d.vcp.Read(buff)
+		if err != nil {
+			if err == io.EOF || n == 0 {
+				break
+			}
+			log.Fatal(err)
+		}
 	}
 
 	return nil
@@ -488,11 +618,19 @@ func (d *DLPTH1C) set8G() error {
 
 func (d *DLPTH1C) set16G() error {
 	d.vcp.Write([]byte{Set16GASCIICmd})
-	time.Sleep(2 * time.Second)
 
-	b := make([]byte, 4)
-	if _, err := d.vcp.Read(b); err != nil {
-		return err
+	// Assigns 1 byte array where bytes from the port will be stored
+	buff := make([]byte, 1)
+
+	// Clear buffer
+	for {
+		n, err := d.vcp.Read(buff)
+		if err != nil {
+			if err == io.EOF || n == 0 {
+				break
+			}
+			log.Fatal(err)
+		}
 	}
 
 	return nil
