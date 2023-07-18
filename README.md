@@ -4,6 +4,7 @@
 Provides only functions that communicate using ascii.  
 In my environment, using byte, the dlp-th1c sensor loses some data for some reason (but I couldn't find).  
 The "//string parsing" parts in various parts of the function were also written considering data loss.  
+(Found and fixed at [v1.0.3](https://github.com/w00cheol/serial/commit/e6c7bb0c69a0dcf030ed922f5e1ea6f65c7b942f))
 
 Select function by the command needs to be updated to use onther parsing function depending on each option.  
 But imagine how the custom option could be,  
@@ -37,7 +38,7 @@ func main() {
 |COMMAND        |FUNCTION                                   |
 |--------------:|:------------------------------------------|
 | all           | Read All Data                             |      
-|(COMBINE)      | Read Costomized Data but takes 30 secs    |
+|(COMBINE)      | Read Costomized Data                      |
 |t              | Read Temperature Data Only                |
 |h              | Read Humidity Data Only                   |
 |p              | Read Pressure Data Only                   |
