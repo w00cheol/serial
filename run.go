@@ -122,6 +122,7 @@ func RunWithCommand(cmd string) {
 
 				timeSeriesData.Data[c].print()
 			}
+
 			fmt.Printf("Time: %+v\n\n", timeSeriesData.Time)
 		}
 	} else {

@@ -19,7 +19,7 @@ const (
 	VibrationZBinaryCmd  byte = 0x57
 	LightBinaryCmd       byte = 0x4C
 	SoundBinaryCmd       byte = 0x46
-	BroadBinaryCmd       byte = 0x42
+	BroadBandBinaryCmd   byte = 0x42
 	Set2GBinaryCmd       byte = 0x6d
 	Set4GBinaryCmd       byte = 0x6E
 	Set8GBinaryCmd       byte = 0x2C
